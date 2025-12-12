@@ -1,0 +1,26 @@
+# .dockerignore
+
+# Git
+.git
+.gitignore
+
+# Python / Environment
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Caches
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Docker volumes (jeśli się utworzą lokalnie)
+postgres_data
+
+# Environment variables (bezpieczeństwo - nie chcemy ich "wpieczonych" w obraz)
+.env
