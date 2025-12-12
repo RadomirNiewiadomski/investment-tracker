@@ -19,4 +19,4 @@ async def health_check() -> dict[str, str]:
     Returns:
         dict: Status message.
     """
-    return {"status": "ok", "service": "investement-tracker"}
+    return {"status": "ok", "service": "investment-tracker"}
