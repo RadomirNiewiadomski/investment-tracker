@@ -18,8 +18,6 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
     Yields:
         AsyncClient: An httpx client configured to communicate with the FastAPI app.
     """
-    # ASGITransport to nowoczesny sposób łączenia httpx bezpośrednio z aplikacją FastAPI
-    # bez stawiania prawdziwego serwera sieciowego.
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
