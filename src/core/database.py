@@ -1,6 +1,7 @@
 """
 Database connection and session management using SQLAlchemy 2.0 (Async).
 """
+
 import re
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -41,14 +42,14 @@ class Base(DeclarativeBase):
         Generate snake_case table name from CamelCase class name.
         Example: 'UserPortfolio' -> 'user_portfolio'
         """
-        return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
     def __repr__(self) -> str:
         """
         String representation of the model showing Primary Key(s).
         Example: <User(id=1)>
         """
-        pk_cols = [c.name for c in self.__table__.primary_key.columns]
+        pk_cols = [c.name for c in self.__table__.primary_key]
 
         params = ", ".join(f"{key}={getattr(self, key)}" for key in pk_cols)
 
