@@ -35,16 +35,11 @@ def test_database_tablename_generation() -> None:
     Test automatic snake_case table name generation from class name.
     """
 
-    # Create some temporary models
-    class User(Base):
+    class SomeTestModel(Base):
         id: Mapped[int] = mapped_column(primary_key=True)
 
-    class UserPortfolio(Base):
+    class AnotherComplexName(Base):
         id: Mapped[int] = mapped_column(primary_key=True)
 
-    class AssetManager(Base):
-        id: Mapped[int] = mapped_column(primary_key=True)
-
-    assert User.__tablename__ == "user"
-    assert UserPortfolio.__tablename__ == "user_portfolio"
-    assert AssetManager.__tablename__ == "asset_manager"
+    assert SomeTestModel.__tablename__ == "some_test_model"
+    assert AnotherComplexName.__tablename__ == "another_complex_name"
