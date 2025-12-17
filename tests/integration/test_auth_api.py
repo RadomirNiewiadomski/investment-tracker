@@ -46,3 +46,39 @@ async def test_register_duplicate_email(client: AsyncClient):
     resp2 = await client.post("/api/v1/auth/register", json=payload)
     assert resp2.status_code == 400
     assert resp2.json()["detail"] == "Email already registered"
+
+
+@pytest.mark.asyncio
+async def test_login_success(client: AsyncClient):
+    """
+    Integration test: Login with valid credentials and receive JWT token.
+    """
+    email = f"login_{uuid.uuid4()}@example.com"
+    password = "strong_password123"
+
+    register_payload = {"email": email, "password": password, "first_name": "Login", "last_name": "Tester"}
+    await client.post("/api/v1/auth/register", json=register_payload)
+
+    login_payload = {"email": email, "password": password}
+    response = await client.post("/api/v1/auth/login", json=login_payload)
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+    assert isinstance(data["access_token"], str)
+    assert len(data["access_token"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_login_invalid_credentials(client: AsyncClient):
+    """
+    Integration test: Login with wrong password should fail.
+    """
+    login_payload = {"email": "ghost@example.com", "password": "wrong_password"}
+
+    response = await client.post("/api/v1/auth/login", json=login_payload)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect email or password"

@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.security import verify_password
+from src.core.security import get_password_hash, verify_password
 from src.modules.auth.schemas import UserCreate
 from src.modules.auth.service import AuthService
 
@@ -59,3 +59,58 @@ async def test_create_user_already_exists():
 
     mock_session.add.assert_not_called()
     mock_session.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_authenticate_user_success():
+    """
+    Test authentication logic with correct credentials.
+    Should return the user object.
+    """
+    mock_session = AsyncMock(spec=AsyncSession)
+
+    # Simulate DB user with hashed password
+    password = "secret_password"
+    hashed_pw = get_password_hash(password)
+
+    mock_user = MagicMock()
+    mock_user.email = "test@example.com"
+    mock_user.hashed_password = hashed_pw
+
+    # Mocking DB response
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.first.return_value = mock_user
+    mock_session.execute.return_value = mock_result
+
+    service = AuthService()
+
+    authenticated_user = await service.authenticate_user(mock_session, "test@example.com", password)
+
+    assert authenticated_user is not None
+    assert authenticated_user.email == "test@example.com"
+
+
+@pytest.mark.asyncio
+async def test_authenticate_user_wrong_password():
+    """
+    Test authentication with wrong password.
+    Should return None.
+    """
+    mock_session = AsyncMock(spec=AsyncSession)
+
+    password = "secret_password"
+    hashed_pw = get_password_hash(password)
+
+    mock_user = MagicMock()
+    mock_user.email = "test@example.com"
+    mock_user.hashed_password = hashed_pw
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.first.return_value = mock_user
+    mock_session.execute.return_value = mock_result
+
+    service = AuthService()
+
+    authenticated_user = await service.authenticate_user(mock_session, "test@example.com", "WRONG_PASSWORD")
+
+    assert authenticated_user is None

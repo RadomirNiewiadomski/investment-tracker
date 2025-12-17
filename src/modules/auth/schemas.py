@@ -35,3 +35,21 @@ class UserRead(UserBase):
     last_name: str | None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class Token(BaseModel):
+    """
+    Schema for JWT access token response.
+    """
+
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserLogin(BaseModel):
+    """
+    Schema for user login request.
+    """
+
+    email: EmailStr
+    password: str
