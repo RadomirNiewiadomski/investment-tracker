@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     # --- App Config ---
     PROJECT_NAME: str = "Investment Tracker"
+    DEBUG: bool = False
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = "changeme"
 
