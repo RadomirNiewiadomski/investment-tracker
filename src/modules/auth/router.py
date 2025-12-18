@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
 from src.core.security import create_access_token
+from src.modules.auth.dependencies import get_current_user
+from src.modules.auth.models import User
 from src.modules.auth.schemas import Token, UserCreate, UserLogin, UserRead
 from src.modules.auth.service import AuthService
 
@@ -23,7 +25,7 @@ router = APIRouter(tags=["Authentication"])
 async def register(
     user_in: UserCreate,
     session: AsyncSession = Depends(get_db),
-) -> UserRead:
+) -> User:
     """
     Handle user registration.
     """
@@ -59,3 +61,19 @@ async def login(
     access_token = create_access_token(subject=user.uuid)
 
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.get(
+    "/me",
+    response_model=UserRead,
+    status_code=status.HTTP_200_OK,
+    summary="Get current user",
+    description="Retrieve profile information for the currently authenticated user.",
+)
+async def read_users_me(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Return the current authenticated user.
+    """
+    return current_user

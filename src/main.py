@@ -7,6 +7,7 @@ from fastapi.responses import ORJSONResponse
 from src.core.config import settings
 from src.core.logging import setup_logging
 from src.modules.auth.router import router as auth_router
+from src.modules.health.router import router as health_router
 
 
 @asynccontextmanager
@@ -34,12 +35,7 @@ def create_application() -> FastAPI:
     )
     application.include_router(auth_router, prefix="/api/v1/auth")
 
-    @application.get("/health", tags=["Health"])
-    async def health_check() -> dict[str, str]:
-        """
-        Health check endpoint to verify service status.
-        """
-        return {"status": "ok", "service": "investment-tracker"}
+    application.include_router(health_router)
 
     return application
 

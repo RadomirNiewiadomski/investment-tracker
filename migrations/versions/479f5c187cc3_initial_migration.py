@@ -1,10 +1,12 @@
-"""initial_migration_users
+"""Initial migration
 
-Revision ID: bb1b0a57f4c4
+Revision ID: 479f5c187cc3
 Revises:
-Create Date: 2025-12-15 10:16:28.154353
+Create Date: 2025-12-18 08:57:42.730009
 
 """
+
+from __future__ import annotations
 
 from collections.abc import Sequence
 
@@ -12,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "bb1b0a57f4c4"
+revision: str = "479f5c187cc3"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

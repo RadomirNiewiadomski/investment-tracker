@@ -82,3 +82,38 @@ async def test_login_invalid_credentials(client: AsyncClient):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Incorrect email or password"
+
+
+@pytest.mark.asyncio
+async def test_read_users_me_success(client: AsyncClient):
+    """
+    Integration test: Access protected endpoint /me with a valid token.
+    """
+    email = f"me_{uuid.uuid4()}@example.com"
+    password = "strong_password123"
+
+    await client.post(
+        "/api/v1/auth/register", json={"email": email, "password": password, "first_name": "Me", "last_name": "User"}
+    )
+
+    login_resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    token = login_resp.json()["access_token"]
+
+    headers = {"Authorization": f"Bearer {token}"}
+    response = await client.get("/api/v1/auth/me", headers=headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == email
+    assert data["first_name"] == "Me"
+    assert "password" not in data
+
+
+@pytest.mark.asyncio
+async def test_read_users_me_unauthorized(client: AsyncClient):
+    """
+    Integration test: Access /me without token should fail.
+    """
+    response = await client.get("/api/v1/auth/me")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
