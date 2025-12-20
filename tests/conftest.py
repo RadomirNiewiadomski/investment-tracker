@@ -6,10 +6,10 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import Base, engine
+from src.core.database import Base, async_session_maker, engine
 from src.main import app
-from src.modules.auth.models import User  # noqa: F401
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -26,6 +26,17 @@ async def setup_database():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest.fixture(scope="function")
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Create a fresh database session for a test function.
+    Rolls back transaction after test to keep DB clean.
+    """
+    async with async_session_maker() as session:
+        yield session
+        await session.rollback()
 
 
 @pytest.fixture(scope="function")

@@ -72,3 +72,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, Any]:
             raise
         finally:
             await session.close()
+
+
+from src.modules.auth.models import User  # noqa: F401, E402
+from src.modules.portfolio.models import Asset, Portfolio  # noqa: F401, E402
