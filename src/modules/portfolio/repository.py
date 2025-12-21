@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.portfolio.models import Portfolio
+from src.modules.portfolio.models import Asset, Portfolio
 
 
 class PortfolioRepository:
@@ -65,4 +65,28 @@ class PortfolioRepository:
         Deletes a portfolio from the database.
         """
         await self.session.delete(portfolio)
+        await self.session.commit()
+
+    async def get_asset_by_ticker(self, portfolio_id: int, ticker: str) -> Asset | None:
+        """
+        Retrieves a specific asset from a portfolio by its ticker.
+        """
+        stmt = select(Asset).where(Asset.portfolio_id == portfolio_id, Asset.ticker == ticker)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def create_asset(self, asset: Asset) -> Asset:
+        """
+        Adds a new asset to the database.
+        """
+        self.session.add(asset)
+        await self.session.commit()
+        await self.session.refresh(asset)
+        return asset
+
+    async def commit(self) -> None:
+        """
+        Commits changes to the database.
+        Useful for updates where we modified the object directly.
+        """
         await self.session.commit()
