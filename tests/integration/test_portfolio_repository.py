@@ -5,12 +5,12 @@ from src.modules.portfolio.repository import PortfolioRepository
 
 
 @pytest.mark.asyncio
-async def test_repository_create_and_get_portfolio(get_db: AsyncSession, user_factory):
+async def test_repository_create_and_get_portfolio(db_session: AsyncSession, user_factory):
     """
     Test creating a new portfolio via repository and retrieving it by ID.
     Ensures that data persistence works correctly.
     """
-    repo = PortfolioRepository(get_db)
+    repo = PortfolioRepository(db_session)
     user = await user_factory("repo_test@example.com")
 
     new_portfolio = await repo.create_portfolio(user_id=user.id, name="My Repository Fund", description="Testing repo")
@@ -27,12 +27,12 @@ async def test_repository_create_and_get_portfolio(get_db: AsyncSession, user_fa
 
 
 @pytest.mark.asyncio
-async def test_repository_list_user_portfolios(get_db: AsyncSession, user_factory):
+async def test_repository_list_user_portfolios(db_session: AsyncSession, user_factory):
     """
     Test retrieving all portfolios belonging to a specific user.
     Should return a list of Portfolio objects.
     """
-    repo = PortfolioRepository(get_db)
+    repo = PortfolioRepository(db_session)
     user = await user_factory("list_test@example.com")
 
     await repo.create_portfolio(user.id, "Portfolio A")
@@ -47,11 +47,11 @@ async def test_repository_list_user_portfolios(get_db: AsyncSession, user_factor
 
 
 @pytest.mark.asyncio
-async def test_repository_update_portfolio(get_db: AsyncSession, user_factory):
+async def test_repository_update_portfolio(db_session: AsyncSession, user_factory):
     """
     Test updating an existing portfolio.
     """
-    repo = PortfolioRepository(get_db)
+    repo = PortfolioRepository(db_session)
     user = await user_factory("update_test@example.com")
     portfolio = await repo.create_portfolio(user.id, "Old Name", "Old Desc")
 
@@ -63,12 +63,12 @@ async def test_repository_update_portfolio(get_db: AsyncSession, user_factory):
 
 
 @pytest.mark.asyncio
-async def test_repository_delete_portfolio(get_db: AsyncSession, user_factory):
+async def test_repository_delete_portfolio(db_session: AsyncSession, user_factory):
     """
     Test deleting a portfolio.
     Verifies that the portfolio is removed from the database.
     """
-    repo = PortfolioRepository(get_db)
+    repo = PortfolioRepository(db_session)
     user = await user_factory("delete_test@example.com")
     portfolio = await repo.create_portfolio(user.id, "To Delete")
 
