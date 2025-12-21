@@ -3,26 +3,16 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.security import get_password_hash
 from src.modules.auth.models import User
 from src.modules.portfolio.models import Asset, AssetType, Portfolio
 
 
-async def create_test_user(session: AsyncSession, email: str = "test@example.com") -> User:
-    hashed_pw = get_password_hash("secret")
-    user = User(email=email, hashed_password=hashed_pw, is_active=True)
-    session.add(user)
-    await session.commit()
-    await session.refresh(user)
-    return user
-
-
 @pytest.mark.asyncio
-async def test_create_portfolio_relationship(get_db: AsyncSession):
+async def test_create_portfolio_relationship(get_db: AsyncSession, user_factory):
     """
     Test creation of portfolio and bidirectional relationship with User.
     """
-    user = await create_test_user(get_db, email="portfolio_owner@example.com")
+    user = await user_factory("portfolio_owner@example.com")
 
     portfolio = Portfolio(name="Retirement Fund", description="Long term holding", user_id=user.id)
     get_db.add(portfolio)
@@ -41,11 +31,11 @@ async def test_create_portfolio_relationship(get_db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_unique_portfolio_name_constraint(get_db: AsyncSession):
+async def test_unique_portfolio_name_constraint(get_db: AsyncSession, user_factory):
     """
     Test that a user cannot have two portfolios with the same name.
     """
-    user = await create_test_user(get_db, email="unique_check@example.com")
+    user = await user_factory("unique_check@example.com")
 
     p1 = Portfolio(name="Crypto", user_id=user.id)
     get_db.add(p1)
@@ -61,11 +51,11 @@ async def test_unique_portfolio_name_constraint(get_db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_unique_asset_ticker_constraint(get_db: AsyncSession):
+async def test_unique_asset_ticker_constraint(get_db: AsyncSession, user_factory):
     """
     Test that a portfolio cannot have duplicate tickers (should be aggregated).
     """
-    user = await create_test_user(get_db, email="asset_check@example.com")
+    user = await user_factory("asset_check@example.com")
 
     portfolio = Portfolio(name="Stocks", user_id=user.id)
     get_db.add(portfolio)
@@ -90,11 +80,11 @@ async def test_unique_asset_ticker_constraint(get_db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_cascade_delete_user(get_db: AsyncSession):
+async def test_cascade_delete_user(get_db: AsyncSession, user_factory):
     """
     Test that deleting a User automatically removes their Portfolios and Assets.
     """
-    user = await create_test_user(get_db, email="delete_me@example.com")
+    user = await user_factory("delete_me@example.com")
 
     portfolio = Portfolio(name="Temp", user_id=user.id)
     get_db.add(portfolio)
