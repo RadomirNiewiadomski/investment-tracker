@@ -18,6 +18,7 @@ from src.core.handlers import (
 from src.core.logging import setup_logging
 from src.modules.auth.router import router as auth_router
 from src.modules.health.router import router as health_router
+from src.modules.portfolio.router import router as portfolio_router
 
 
 @asynccontextmanager
@@ -59,6 +60,7 @@ def create_application() -> FastAPI:
         application.add_exception_handler(Exception, global_exception_handler)
 
     application.include_router(auth_router, prefix="/api/v1/auth")
+    application.include_router(portfolio_router, prefix="/api/v1/portfolios")
     application.include_router(health_router)
 
     return application

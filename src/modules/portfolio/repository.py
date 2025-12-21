@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.modules.portfolio.models import Asset, Portfolio
 
@@ -26,18 +27,21 @@ class PortfolioRepository:
         portfolio = Portfolio(user_id=user_id, name=name, description=description)
         self.session.add(portfolio)
         await self.session.commit()
-        await self.session.refresh(portfolio)
+        await self.session.refresh(portfolio, attribute_names=["assets"])
         return portfolio
 
     async def get_portfolio_by_id(self, portfolio_id: int) -> Portfolio | None:
         """
-        Retrieves a portfolio by its ID.
+        Retrieves a portfolio by its ID including its assets (Eager Load).
         """
-        return await self.session.get(Portfolio, portfolio_id)
+        stmt = select(Portfolio).options(selectinload(Portfolio.assets)).where(Portfolio.id == portfolio_id)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
 
     async def get_all_by_user(self, user_id: int) -> Sequence[Portfolio]:
         """
         Retrieves all portfolios belonging to a specific user.
+        Lightweight query - fetches ONLY portfolio data, NO assets.
         """
         stmt = select(Portfolio).where(Portfolio.user_id == user_id)
         result = await self.session.execute(stmt)

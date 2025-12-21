@@ -18,8 +18,8 @@ class AssetBase(BaseModel):
     """
 
     ticker: str = Field(min_length=1, max_length=20, pattern="^[A-Z0-9]+$")
-    quantity: Annotated[Decimal, Field(strict=True, gt=0)]
-    avg_buy_price: Annotated[Decimal, Field(strict=True, gt=0, decimal_places=2)]
+    quantity: Annotated[Decimal, Field(gt=0)]
+    avg_buy_price: Annotated[Decimal, Field(gt=0, decimal_places=2)]
     asset_type: AssetType
 
 
@@ -67,6 +67,18 @@ class PortfolioUpdate(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=255)
+
+
+class PortfolioListResponse(PortfolioBase):
+    """
+    Lightweight response for list views (no assets).
+    """
+
+    id: int
+    user_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PortfolioResponse(PortfolioBase):
