@@ -1,6 +1,12 @@
+"""
+Integration tests for PortfolioRepository.
+Verifies database operations for Portfolios and Assets using a real DB session.
+"""
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.modules.portfolio.models import Asset, AssetType
 from src.modules.portfolio.repository import PortfolioRepository
 
 
@@ -76,3 +82,24 @@ async def test_repository_delete_portfolio(db_session: AsyncSession, user_factor
 
     fetched = await repo.get_portfolio_by_id(portfolio.id)
     assert fetched is None
+
+
+@pytest.mark.asyncio
+async def test_repository_delete_asset(db_session: AsyncSession, user_factory):
+    """
+    Test deleting a specific asset from the repository.
+    """
+    repo = PortfolioRepository(db_session)
+    user = await user_factory("repo_asset_del@example.com")
+    portfolio = await repo.create_portfolio(user.id, "Asset Delete Test")
+
+    asset = Asset(ticker="SOL", quantity=10, avg_buy_price=20, asset_type=AssetType.CRYPTO, portfolio_id=portfolio.id)
+    created_asset = await repo.create_asset(asset)
+
+    await repo.delete_asset(created_asset)
+
+    fetched_asset = await repo.get_asset_by_ticker(portfolio.id, "SOL")
+    assert fetched_asset is None
+
+    fetched_portfolio = await repo.get_portfolio_by_id(portfolio.id)
+    assert fetched_portfolio is not None

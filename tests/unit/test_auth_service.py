@@ -1,3 +1,8 @@
+"""
+Unit tests for AuthService.
+Tests business logic using mocked repository.
+"""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -69,7 +74,6 @@ async def test_authenticate_user_success():
     """
     mock_session = AsyncMock(spec=AsyncSession)
 
-    # Simulate DB user with hashed password
     password = "secret_password"
     hashed_pw = get_password_hash(password)
 
@@ -77,7 +81,6 @@ async def test_authenticate_user_success():
     mock_user.email = "test@example.com"
     mock_user.hashed_password = hashed_pw
 
-    # Mocking DB response
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = mock_user
     mock_session.execute.return_value = mock_result

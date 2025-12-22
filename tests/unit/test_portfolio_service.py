@@ -7,7 +7,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 from src.modules.portfolio.models import Asset, AssetType, Portfolio
 from src.modules.portfolio.schemas import AssetCreate, PortfolioCreate
@@ -110,3 +110,45 @@ async def test_add_asset_aggregation(service, mock_repo):
 
     mock_repo.commit.assert_awaited_once()
     mock_repo.create_asset.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_remove_asset_success(service, mock_repo):
+    """
+    Test removing an asset successfully.
+    """
+    user_id = 1
+    portfolio_id = 10
+    ticker = "BTC"
+
+    mock_portfolio = Portfolio(id=portfolio_id, user_id=user_id)
+    mock_asset = Asset(id=100, ticker=ticker, portfolio_id=portfolio_id)
+
+    mock_repo.get_portfolio_by_id.return_value = mock_portfolio
+    mock_repo.get_asset_by_ticker.return_value = mock_asset
+
+    await service.remove_asset(user_id, portfolio_id, ticker)
+
+    mock_repo.get_asset_by_ticker.assert_awaited_once_with(portfolio_id, ticker)
+    mock_repo.delete_asset.assert_awaited_once_with(mock_asset)
+
+
+@pytest.mark.asyncio
+async def test_remove_asset_not_found(service, mock_repo):
+    """
+    Test removing a non-existent asset raises 404.
+    """
+    user_id = 1
+    portfolio_id = 10
+    ticker = "GHOST"
+
+    mock_portfolio = Portfolio(id=portfolio_id, user_id=user_id)
+
+    mock_repo.get_portfolio_by_id.return_value = mock_portfolio
+    mock_repo.get_asset_by_ticker.return_value = None
+
+    with pytest.raises(HTTPException) as exc:
+        await service.remove_asset(user_id, portfolio_id, ticker)
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+    mock_repo.delete_asset.assert_not_awaited()

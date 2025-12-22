@@ -147,3 +147,26 @@ async def test_get_portfolio_detail_with_assets(client: AsyncClient, auth_header
     assert data["name"] == "Details Test"
     assert len(data["assets"]) == 1
     assert data["assets"][0]["ticker"] == "ETH"
+
+
+@pytest.mark.asyncio
+async def test_delete_asset_api(client: AsyncClient, auth_headers: dict):
+    """
+    Test DELETE /api/v1/portfolios/{id}/assets/{ticker}
+    Should remove the asset from the portfolio.
+    """
+    create_resp = await client.post("/api/v1/portfolios/", json={"name": "Temp Portfolio"}, headers=auth_headers)
+    p_id = create_resp.json()["id"]
+
+    await client.post(
+        f"/api/v1/portfolios/{p_id}/assets",
+        json={"ticker": "BTC", "quantity": "1.0", "avg_buy_price": "20000.00", "asset_type": "CRYPTO"},
+        headers=auth_headers,
+    )
+
+    del_resp = await client.delete(f"/api/v1/portfolios/{p_id}/assets/BTC", headers=auth_headers)
+    assert del_resp.status_code == 204
+
+    get_resp = await client.get(f"/api/v1/portfolios/{p_id}", headers=auth_headers)
+    data = get_resp.json()
+    assert len(data["assets"]) == 0

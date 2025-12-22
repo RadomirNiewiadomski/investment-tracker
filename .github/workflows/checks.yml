@@ -97,5 +97,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Create Test Database
+        env:
+          PGPASSWORD: password
+        run: |
+          psql -h localhost -U postgres -d test_db -c "CREATE DATABASE investment_tracker_test;"
+
       - name: Run Tests
         run: uv run pytest -v

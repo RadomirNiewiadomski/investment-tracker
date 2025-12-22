@@ -106,3 +106,15 @@ class PortfolioService:
                 portfolio_id=portfolio.id,
             )
             return await self.repository.create_asset(new_asset)
+
+    async def remove_asset(self, user_id: int, portfolio_id: int, ticker: str) -> None:
+        """
+        Removes an asset (identified by ticker) from a user's portfolio.
+        """
+        portfolio = await self.get_portfolio(user_id, portfolio_id)
+
+        asset = await self.repository.get_asset_by_ticker(portfolio.id, ticker)
+        if not asset:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found in this portfolio")
+
+        await self.repository.delete_asset(asset)

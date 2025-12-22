@@ -1,3 +1,7 @@
+"""
+Integration tests for Auth API endpoints.
+"""
+
 import uuid
 
 import pytest
@@ -35,7 +39,7 @@ async def test_register_user_success(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client: AsyncClient):
     """
-    Integration test: Try to register twice with the same email. t
+    Integration test: Try to register twice with the same email.
     """
     email = f"dup_{uuid.uuid4()}@example.com"
     payload = {"email": email, "password": "strong_password123"}

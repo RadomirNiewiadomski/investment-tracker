@@ -1,3 +1,8 @@
+"""
+Integration tests for Portfolio models.
+Tests database persistence and relationships.
+"""
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError

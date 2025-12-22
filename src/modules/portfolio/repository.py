@@ -33,8 +33,14 @@ class PortfolioRepository:
     async def get_portfolio_by_id(self, portfolio_id: int) -> Portfolio | None:
         """
         Retrieves a portfolio by its ID including its assets (Eager Load).
+        Forces refresh from DB to ensure up-to-date assets list.
         """
-        stmt = select(Portfolio).options(selectinload(Portfolio.assets)).where(Portfolio.id == portfolio_id)
+        stmt = (
+            select(Portfolio)
+            .options(selectinload(Portfolio.assets))
+            .where(Portfolio.id == portfolio_id)
+            .execution_options(populate_existing=True)
+        )
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
@@ -93,4 +99,11 @@ class PortfolioRepository:
         Commits changes to the database.
         Useful for updates where we modified the object directly.
         """
+        await self.session.commit()
+
+    async def delete_asset(self, asset: Asset) -> None:
+        """
+        Deletes an asset from the database.
+        """
+        await self.session.delete(asset)
         await self.session.commit()
