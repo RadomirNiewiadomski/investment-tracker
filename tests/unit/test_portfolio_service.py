@@ -9,7 +9,10 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException, status
 
+from src.core.exceptions import PermissionDeniedException
+from src.modules.market_data.service import MarketDataService
 from src.modules.portfolio.models import Asset, AssetType, Portfolio
+from src.modules.portfolio.repository import PortfolioRepository
 from src.modules.portfolio.schemas import AssetCreate, PortfolioCreate
 from src.modules.portfolio.service import PortfolioService
 
@@ -17,14 +20,21 @@ from src.modules.portfolio.service import PortfolioService
 @pytest.fixture
 def mock_repo():
     """Mocks the PortfolioRepository."""
-    repo = AsyncMock()
-    return repo
+    return AsyncMock(spec=PortfolioRepository)
 
 
 @pytest.fixture
-def service(mock_repo):
-    """Creates PortfolioService with mocked repo."""
-    return PortfolioService(mock_repo)
+def mock_market_data():
+    """
+    Creates a mock for MarketDataService.
+    """
+    return AsyncMock(spec=MarketDataService)
+
+
+@pytest.fixture
+def service(mock_repo, mock_market_data):
+    """Creates PortfolioService with mocked dependencies."""
+    return PortfolioService(mock_repo, mock_market_data)
 
 
 @pytest.mark.asyncio
@@ -152,3 +162,66 @@ async def test_remove_asset_not_found(service, mock_repo):
 
     assert exc.value.status_code == status.HTTP_404_NOT_FOUND
     mock_repo.delete_asset.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_portfolio_with_valuation(service, mock_repo, mock_market_data):
+    """
+    Test retrieving a portfolio and calculating its value (PnL).
+    Scenario:
+    - User has 1 BTC bought at $20,000.
+    - Current price is $50,000.
+    - Expected Total Value: $50,000.
+    - Expected PnL: 150%.
+    """
+    user_id = 1
+    portfolio_id = 10
+
+    asset = Asset(
+        id=100, ticker="BTC", quantity=Decimal("1.0"), avg_buy_price=Decimal("20000.00"), asset_type=AssetType.CRYPTO
+    )
+    portfolio = Portfolio(id=portfolio_id, user_id=user_id, assets=[asset])
+
+    mock_repo.get_portfolio_by_id.return_value = portfolio
+
+    # Mock Market Data (BTC price = 50k)
+    mock_market_data.get_price.return_value = 50000.0
+
+    result = await service.get_portfolio(user_id, portfolio_id)
+
+    mock_repo.get_portfolio_by_id.assert_awaited_once_with(portfolio_id)
+    mock_market_data.get_price.assert_awaited_once_with("BTC")
+
+    assert result.assets[0].current_price == 50000.0
+    assert result.assets[0].current_value == 50000.0
+    assert result.assets[0].pnl_percentage == 150.0
+    assert result.total_value == 50000.0
+    assert result.total_pnl_percentage == 150.0
+
+
+@pytest.mark.asyncio
+async def test_get_portfolio_not_found(service, mock_repo):
+    """
+    Test getting a non-existent portfolio raises 404.
+    """
+    mock_repo.get_portfolio_by_id.return_value = None
+
+    with pytest.raises(HTTPException) as exc:
+        await service.get_portfolio(user_id=1, portfolio_id=999)
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_get_portfolio_permission_denied(service, mock_repo):
+    """
+    Test accessing someone else's portfolio raises 403.
+    """
+    wrong_user_id = 1
+    owner_id = 2
+    portfolio = Portfolio(id=10, user_id=owner_id)
+
+    mock_repo.get_portfolio_by_id.return_value = portfolio
+
+    with pytest.raises(PermissionDeniedException):
+        await service.get_portfolio(wrong_user_id, portfolio_id=10)

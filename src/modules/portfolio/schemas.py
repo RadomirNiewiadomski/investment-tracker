@@ -38,6 +38,11 @@ class AssetResponse(AssetBase):
 
     id: int
     portfolio_id: int
+    created_at: datetime
+
+    current_price: float | None = None
+    current_value: float | None = None
+    pnl_percentage: float | None = None  # 'pnl' - Profit and Loss
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -90,6 +95,9 @@ class PortfolioResponse(PortfolioBase):
     id: int
     user_id: int
     created_at: datetime
+
+    total_value: float | None = None
+    total_pnl_percentage: float | None = None
 
     assets: list[AssetResponse] = []
 

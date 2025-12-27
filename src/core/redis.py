@@ -3,6 +3,7 @@ Redis configuration and client handling.
 """
 
 from collections.abc import AsyncGenerator
+from typing import cast
 
 from redis.asyncio import Redis, from_url
 
@@ -13,10 +14,13 @@ async def init_redis_pool() -> Redis:
     """
     Creates and returns a Redis client instance.
     """
-    redis = from_url(
-        f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
-        encoding="utf-8",
-        decode_responses=True,
+    redis = cast(
+        Redis,
+        from_url(
+            f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
+            encoding="utf-8",
+            decode_responses=True,
+        ),
     )
     return redis
 
@@ -29,4 +33,4 @@ async def get_redis_client() -> AsyncGenerator[Redis, None]:
     try:
         yield client
     finally:
-        await client.close()
+        await client.aclose()

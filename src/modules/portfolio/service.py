@@ -3,10 +3,13 @@ Service layer for the Portfolio module.
 Contains business logic for managing portfolios and assets.
 """
 
+import asyncio
 from decimal import Decimal
 
 from fastapi import HTTPException, status
 
+from src.core.exceptions import PermissionDeniedException
+from src.modules.market_data.service import MarketDataService
 from src.modules.portfolio.models import Asset, Portfolio
 from src.modules.portfolio.repository import PortfolioRepository
 from src.modules.portfolio.schemas import AssetCreate, PortfolioCreate, PortfolioUpdate
@@ -18,8 +21,9 @@ class PortfolioService:
     Interacts with PortfolioRepository for data persistence.
     """
 
-    def __init__(self, repository: PortfolioRepository):
+    def __init__(self, repository: PortfolioRepository, market_data: MarketDataService):
         self.repository = repository
+        self.market_data = market_data
 
     async def create_portfolio(self, user_id: int, portfolio_in: PortfolioCreate) -> Portfolio:
         """
@@ -39,14 +43,47 @@ class PortfolioService:
 
     async def get_portfolio(self, user_id: int, portfolio_id: int) -> Portfolio:
         """
-        Retrieves a portfolio ensuring it belongs to the user.
+        Retrieves a portfolio and enriches it with current market prices.
+        Fetches prices for all assets in parallel using asyncio.gather.
         """
         portfolio = await self.repository.get_portfolio_by_id(portfolio_id)
         if not portfolio:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
 
         if portfolio.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this portfolio")
+            raise PermissionDeniedException()
+
+        if not portfolio.assets:
+            return portfolio
+
+        tasks = [self.market_data.get_price(asset.ticker) for asset in portfolio.assets]
+
+        current_prices = await asyncio.gather(*tasks)
+
+        total_value = 0.0
+        total_cost = 0.0
+
+        for asset, price in zip(portfolio.assets, current_prices, strict=True):
+            asset.current_price = price
+
+            if price is not None:
+                qty_float = float(asset.quantity)
+                buy_price_float = float(asset.avg_buy_price)
+
+                current_val = qty_float * price
+                cost_val = qty_float * buy_price_float
+
+                asset.current_value = current_val
+
+                if cost_val > 0:
+                    asset.pnl_percentage = ((current_val - cost_val) / cost_val) * 100.0
+
+                total_value += current_val
+                total_cost += cost_val
+
+        portfolio.total_value = total_value
+        if total_cost > 0:
+            portfolio.total_pnl_percentage = ((total_value - total_cost) / total_cost) * 100.0
 
         return portfolio
 
@@ -80,6 +117,12 @@ class PortfolioService:
         the average buy price (Weighted Average).
         """
         portfolio = await self.get_portfolio(user_id, portfolio_id)
+        if not portfolio:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
+
+        if portfolio.user_id != user_id:
+            raise PermissionDeniedException()
+
         existing_asset = await self.repository.get_asset_by_ticker(portfolio.id, asset_in.ticker)
 
         if existing_asset:
@@ -112,6 +155,11 @@ class PortfolioService:
         Removes an asset (identified by ticker) from a user's portfolio.
         """
         portfolio = await self.get_portfolio(user_id, portfolio_id)
+        if not portfolio:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
+
+        if portfolio.user_id != user_id:
+            raise PermissionDeniedException()
 
         asset = await self.repository.get_asset_by_ticker(portfolio.id, ticker)
         if not asset:
