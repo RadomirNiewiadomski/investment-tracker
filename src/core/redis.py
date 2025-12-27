@@ -16,7 +16,7 @@ async def init_redis_pool() -> Redis:
     """
     redis = cast(
         Redis,
-        from_url(
+        from_url(  # type: ignore
             f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
             encoding="utf-8",
             decode_responses=True,

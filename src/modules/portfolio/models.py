@@ -36,6 +36,7 @@ class Portfolio(Base, UUIDMixin, TimestampMixin):
     """
 
     __tablename__ = "portfolios"
+    __allow_unmapped__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
@@ -48,6 +49,10 @@ class Portfolio(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_portfolio_user_name"),)
 
+    # --- TRANSIENT FIELDS (Not stored in DB, used for runtime valuation) ---
+    total_value: float | None = None
+    total_pnl_percentage: float | None = None
+
     def __str__(self) -> str:
         return f"{self.name} ({self.id})"
 
@@ -58,6 +63,7 @@ class Asset(Base, UUIDMixin, TimestampMixin):
     """
 
     __tablename__ = "assets"
+    __allow_unmapped__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
@@ -70,6 +76,11 @@ class Asset(Base, UUIDMixin, TimestampMixin):
     portfolio: Mapped["Portfolio"] = relationship("Portfolio", back_populates="assets")
 
     __table_args__ = (UniqueConstraint("portfolio_id", "ticker", name="uq_asset_portfolio_ticker"),)
+
+    # --- TRANSIENT FIELDS (Not stored in DB, used for runtime valuation) ---
+    current_price: float | None = None
+    current_value: float | None = None
+    pnl_percentage: float | None = None
 
     def __str__(self) -> str:
         return f"{self.ticker} - {self.quantity}"
