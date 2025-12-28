@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -15,13 +16,20 @@ from sqlalchemy.orm import DeclarativeBase, declared_attr
 
 from src.core.config import settings
 
-# Create Async Engine (for managing Connection Pool)
-engine = create_async_engine(
-    str(settings.SQLALCHEMY_DATABASE_URI),
-    echo=True,  # Set to False in production
-    future=True,
-)
 
+def create_engine() -> AsyncEngine:
+    """
+    Creates a new AsyncEngine instance.
+    """
+    return create_async_engine(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        echo=settings.DEBUG,
+        future=True,
+    )
+
+
+# Global instance for FastAPI
+engine = create_engine()
 # Create Session Factory (new AsyncSession instances for each request)
 async_session_maker = async_sessionmaker(
     bind=engine,

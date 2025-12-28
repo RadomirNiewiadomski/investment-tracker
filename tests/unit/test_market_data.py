@@ -100,3 +100,26 @@ async def test_get_price_cache_miss_api_failure(mock_redis):
     service.client.get_current_price.assert_awaited_once()
     # Verify we DID NOT save None to Redis
     mock_redis.set.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_price_force_refresh(mock_redis):
+    """
+    Scenario: Price is in Redis, but force_refresh is True.
+    Expected: Ignore Redis, Call API, Update Redis.
+    """
+    ticker = "BTC"
+    cached_price = "40000.0"
+    new_price = 42000.0
+
+    mock_redis.get.return_value = cached_price
+
+    service = MarketDataService(mock_redis)
+    service.client.get_current_price = AsyncMock(return_value=new_price)
+
+    price = await service.get_price(ticker, force_refresh=True)
+
+    assert price == 42000.0
+    mock_redis.get.assert_not_awaited()
+    service.client.get_current_price.assert_awaited_once_with("BTC")
+    mock_redis.set.assert_awaited_once_with("price:BTC", str(new_price), ex=600)
