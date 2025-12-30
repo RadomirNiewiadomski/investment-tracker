@@ -9,7 +9,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.modules.portfolio.models import AssetType
+from src.modules.portfolio.models import AlertCondition, AssetType
 
 
 class AssetBase(BaseModel):
@@ -102,3 +102,38 @@ class PortfolioResponse(PortfolioBase):
     assets: list[AssetResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AlertBase(BaseModel):
+    ticker: str = Field(min_length=1, max_length=20, pattern="^[A-Z0-9]+$")
+    target_price: Annotated[Decimal, Field(gt=0, decimal_places=2)]
+    condition: AlertCondition
+
+
+class AlertCreate(AlertBase):
+    """Schema for creating an alert."""
+
+    pass
+
+
+class AlertResponse(AlertBase):
+    """Schema for returning an alert."""
+
+    id: int
+    user_id: int
+    is_active: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AlertUpdate(BaseModel):
+    """
+    Schema for updating an alert.
+    Useful for re-arming the alert (is_active=True) or changing target price.
+    """
+
+    ticker: str | None = Field(default=None, min_length=1, max_length=20, pattern="^[A-Z0-9]+$")
+    target_price: Annotated[Decimal | None, Field(gt=0, decimal_places=2)] = None
+    condition: AlertCondition | None = None
+    is_active: bool | None = None

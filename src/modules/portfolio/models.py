@@ -6,7 +6,7 @@ import enum
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -84,3 +84,33 @@ class Asset(Base, UUIDMixin, TimestampMixin):
 
     def __str__(self) -> str:
         return f"{self.ticker} - {self.quantity}"
+
+
+class AlertCondition(str, enum.Enum):
+    """
+    Enum for alert conditions.
+    """
+
+    ABOVE = "ABOVE"
+    BELOW = "BELOW"
+
+
+class Alert(Base, UUIDMixin, TimestampMixin):
+    """
+    Alert model.
+    Defines a rule for notifying the user about price changes.
+    """
+
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False)
+    target_price: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    condition: Mapped[AlertCondition] = mapped_column(String(10), nullable=False)
+    # Flag to check if alert was already sent (to prevent spamming)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<Alert {self.ticker} {self.condition} {self.target_price}>"
