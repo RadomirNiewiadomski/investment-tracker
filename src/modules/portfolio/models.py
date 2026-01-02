@@ -3,6 +3,7 @@ Database models for the Portfolio module.
 """
 
 import enum
+from datetime import date as date_type
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -114,3 +115,25 @@ class Alert(Base, UUIDMixin, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<Alert {self.ticker} {self.condition} {self.target_price}>"
+
+
+class PortfolioHistory(Base):
+    """
+    Daily snapshot of portfolio value.
+    Used for drawing historical performance charts.
+    """
+
+    __tablename__ = "portfolio_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    date: Mapped[date_type] = mapped_column(nullable=False, index=True)
+    total_value: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    total_pnl_percentage: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    portfolio_id: Mapped[int] = mapped_column(ForeignKey("portfolios.id", ondelete="CASCADE"), nullable=False)
+
+    # Constraint: only one snapshot per day for a given portfolio
+    __table_args__ = (UniqueConstraint("portfolio_id", "date", name="uq_portfolio_history_date"),)
+
+    def __repr__(self) -> str:
+        return f"<History PF:{self.portfolio_id} Date:{self.date} Val:{self.total_value}>"
