@@ -22,9 +22,12 @@ async def test_update_prices_logic_flow():
     mock_engine = AsyncMock()
     mock_session = AsyncMock()
 
-    mock_result = MagicMock()
-    mock_result.scalars().all.return_value = ["BTC", "ETH"]
-    mock_session.execute.return_value = mock_result
+    mock_result_assets = MagicMock()
+    mock_result_assets.scalars().all.return_value = ["BTC"]
+
+    mock_result_alerts = MagicMock()
+    mock_result_alerts.scalars().all.return_value = ["ETH"]
+    mock_session.execute.side_effect = [mock_result_assets, mock_result_alerts]
 
     mock_session_maker = MagicMock()
     mock_session_maker.return_value.__aenter__.return_value = mock_session
@@ -37,14 +40,17 @@ async def test_update_prices_logic_flow():
         patch("src.modules.market_data.tasks.create_engine", return_value=mock_engine),
         patch("src.modules.market_data.tasks.async_sessionmaker", return_value=mock_session_maker),
         patch("src.modules.market_data.tasks.MarketDataService", return_value=mock_market_service),
+        patch("src.modules.market_data.tasks._process_alerts", return_value=0) as mock_process_alerts,
     ):
         await _update_prices_logic()
 
-        mock_session.execute.assert_awaited_once()
+        assert mock_session.execute.await_count == 2
 
         assert mock_market_service.get_price.await_count == 2
         mock_market_service.get_price.assert_any_await("BTC", force_refresh=True)
         mock_market_service.get_price.assert_any_await("ETH", force_refresh=True)
+
+        mock_process_alerts.assert_awaited_once()
 
         mock_redis.aclose.assert_awaited_once()
         mock_engine.dispose.assert_awaited_once()

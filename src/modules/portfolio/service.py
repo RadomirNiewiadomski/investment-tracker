@@ -1,6 +1,6 @@
 """
 Service layer for the Portfolio module.
-Contains business logic for managing portfolios and assets.
+Contains business logic for managing portfolios, assets and alerts.
 """
 
 import asyncio
@@ -10,9 +10,9 @@ from fastapi import HTTPException, status
 
 from src.core.exceptions import PermissionDeniedException
 from src.modules.market_data.service import MarketDataService
-from src.modules.portfolio.models import Asset, Portfolio
-from src.modules.portfolio.repository import PortfolioRepository
-from src.modules.portfolio.schemas import AssetCreate, PortfolioCreate, PortfolioUpdate
+from src.modules.portfolio.models import Alert, Asset, Portfolio
+from src.modules.portfolio.repository import AlertRepository, PortfolioRepository
+from src.modules.portfolio.schemas import AlertCreate, AlertUpdate, AssetCreate, PortfolioCreate, PortfolioUpdate
 
 
 class PortfolioService:
@@ -166,3 +166,51 @@ class PortfolioService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found in this portfolio")
 
         await self.repository.delete_asset(asset)
+
+
+class AlertService:
+    """
+    Service for managing user alerts.
+    """
+
+    def __init__(self, repository: AlertRepository):
+        self.repository = repository
+
+    async def create_alert(self, user_id: int, alert_in: AlertCreate) -> Alert:
+        """
+        Creates a new alert for the user.
+        """
+        alert = Alert(**alert_in.model_dump(), user_id=user_id)
+        return await self.repository.create_alert(alert)
+
+    async def get_user_alerts(self, user_id: int) -> list[Alert]:
+        """
+        Gets all alerts for a user.
+        """
+        return list(await self.repository.get_all_by_user(user_id))
+
+    async def update_alert(self, user_id: int, alert_id: int, update_data: AlertUpdate) -> Alert:
+        """
+        Updates an alert. Verifies ownership.
+        """
+        alert = await self.repository.get_alert_by_id(alert_id)
+        if not alert:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
+
+        if alert.user_id != user_id:
+            raise PermissionDeniedException()
+
+        return await self.repository.update_alert(alert, update_data)
+
+    async def delete_alert(self, user_id: int, alert_id: int) -> None:
+        """
+        Deletes an alert. Verifies ownership.
+        """
+        alert = await self.repository.get_alert_by_id(alert_id)
+        if not alert:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
+
+        if alert.user_id != user_id:
+            raise PermissionDeniedException()
+
+        await self.repository.delete_alert(alert)

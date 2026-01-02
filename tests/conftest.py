@@ -3,6 +3,7 @@ Global fixtures for pytest.
 Configures a separate TEST DATABASE to ensure isolation from development data.
 """
 
+import uuid
 from collections.abc import AsyncGenerator, Callable
 
 import pytest
@@ -15,7 +16,7 @@ from sqlalchemy.ext.asyncio import (
 
 from src.core.config import settings
 from src.core.database import Base, get_db
-from src.core.security import get_password_hash
+from src.core.security import create_access_token, get_password_hash
 from src.main import app
 from src.modules.auth.models import User
 
@@ -96,3 +97,15 @@ async def user_factory(db_session: AsyncSession) -> Callable[[str], User]:
         return user
 
     return _create_user
+
+
+@pytest.fixture(scope="function")
+async def auth_headers(user_factory) -> dict[str, str]:
+    """
+    Helper fixture to create a user, generate a valid JWT token,
+    and return authorization headers.
+    """
+    random_email = f"tester_{uuid.uuid4()}@example.com"
+    user = await user_factory(random_email)
+    token = create_access_token(subject=str(user.uuid))
+    return {"Authorization": f"Bearer {token}"}

@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_db
 from src.core.redis import get_redis_client
 from src.modules.market_data.service import MarketDataService
-from src.modules.portfolio.repository import PortfolioRepository
-from src.modules.portfolio.service import PortfolioService
+from src.modules.portfolio.repository import AlertRepository, PortfolioRepository
+from src.modules.portfolio.service import AlertService, PortfolioService
 
 
 def get_market_data_service(redis: Redis = Depends(get_redis_client)) -> MarketDataService:
@@ -30,3 +30,11 @@ def get_portfolio_service(
     """
     repository = PortfolioRepository(session)
     return PortfolioService(repository, market_data)
+
+
+def get_alert_service(session: AsyncSession = Depends(get_db)) -> AlertService:
+    """
+    Dependency that provides an AlertService instance.
+    """
+    repository = AlertRepository(session)
+    return AlertService(repository)

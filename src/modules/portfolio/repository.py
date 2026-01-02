@@ -1,6 +1,6 @@
 """
 Repository layer for Portfolio module.
-Handles database access logic for Portfolios and Assets.
+Handles database access logic for Portfolios, Assets and Allerts.
 """
 
 from collections.abc import Sequence
@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.modules.portfolio.models import Asset, Portfolio
+from src.modules.portfolio.models import Alert, Asset, Portfolio
+from src.modules.portfolio.schemas import AlertUpdate
 
 
 class PortfolioRepository:
@@ -106,4 +107,67 @@ class PortfolioRepository:
         Deletes an asset from the database.
         """
         await self.session.delete(asset)
+        await self.session.commit()
+
+
+class AlertRepository:
+    """
+    Repository for handling Alert database operations.
+    """
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create_alert(self, alert: Alert) -> Alert:
+        """
+        Saves a new alert to the database.
+        """
+        self.session.add(alert)
+        await self.session.commit()
+        await self.session.refresh(alert)
+        return alert
+
+    async def get_alert_by_id(self, alert_id: int) -> Alert | None:
+        """
+        Retrieves an alert by ID.
+        """
+        stmt = select(Alert).where(Alert.id == alert_id)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def get_all_by_user(self, user_id: int) -> Sequence[Alert]:
+        """
+        Retrieves all alerts created by a specific user.
+        """
+        stmt = select(Alert).where(Alert.user_id == user_id).order_by(Alert.created_at.desc())
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_all_active(self) -> Sequence[Alert]:
+        """
+        Retrieves ALL active alerts in the system.
+        Used by the Background Worker to check conditions.
+        """
+        stmt = select(Alert).where(Alert.is_active == True)  # noqa: E712
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def update_alert(self, alert: Alert, update_data: AlertUpdate) -> Alert:
+        """
+        Updates an existing alert.
+        """
+        update_dict = update_data.model_dump(exclude_unset=True)
+
+        for key, value in update_dict.items():
+            setattr(alert, key, value)
+
+        await self.session.commit()
+        await self.session.refresh(alert)
+        return alert
+
+    async def delete_alert(self, alert: Alert) -> None:
+        """
+        Deletes an alert.
+        """
+        await self.session.delete(alert)
         await self.session.commit()

@@ -3,28 +3,12 @@ Integration tests for Portfolio API endpoints.
 Tests the full request-response cycle including authentication and DB persistence.
 """
 
-import uuid
-
 import pytest
 from httpx import AsyncClient
 
-from src.core.security import create_access_token
-
-
-@pytest.fixture
-async def auth_headers(user_factory):
-    """
-    Helper fixture to create a user, generate a valid JWT token,
-    and return authorization headers.
-    """
-    random_email = f"tester_{uuid.uuid4()}@example.com"
-    user = await user_factory(random_email)
-    token = create_access_token(subject=str(user.uuid))
-    return {"Authorization": f"Bearer {token}"}
-
 
 @pytest.mark.asyncio
-async def test_create_portfolio_api(client: AsyncClient, auth_headers: dict):
+async def test_create_portfolio_api(client: AsyncClient, auth_headers: dict[str, str]):
     """
     Test POST /api/v1/portfolios/
     Should create a new portfolio and return 201 Created.
@@ -42,7 +26,7 @@ async def test_create_portfolio_api(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_list_portfolios_api(client: AsyncClient, auth_headers: dict):
+async def test_list_portfolios_api(client: AsyncClient, auth_headers: dict[str, str]):
     """
     Test GET /api/v1/portfolios/
     Should return a list of user's portfolios.
@@ -61,7 +45,7 @@ async def test_list_portfolios_api(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_add_asset_api(client: AsyncClient, auth_headers: dict):
+async def test_add_asset_api(client: AsyncClient, auth_headers: dict[str, str]):
     """
     Test POST /api/v1/portfolios/{id}/assets
     Should add an asset and calculate averages correctly.
@@ -90,7 +74,7 @@ async def test_add_asset_api(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_update_portfolio_api(client: AsyncClient, auth_headers: dict):
+async def test_update_portfolio_api(client: AsyncClient, auth_headers: dict[str, str]):
     """
     Test PATCH /api/v1/portfolios/{id}
     Should update name/description.
@@ -110,7 +94,7 @@ async def test_update_portfolio_api(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_delete_portfolio_api(client: AsyncClient, auth_headers: dict):
+async def test_delete_portfolio_api(client: AsyncClient, auth_headers: dict[str, str]):
     """
     Test DELETE /api/v1/portfolios/{id}
     Should remove the resource.
@@ -126,7 +110,7 @@ async def test_delete_portfolio_api(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_get_portfolio_detail_with_assets(client: AsyncClient, auth_headers: dict):
+async def test_get_portfolio_detail_with_assets(client: AsyncClient, auth_headers: dict[str, str]):
     """
     Test GET /api/v1/portfolios/{id}
     Should return portfolio details WITH assets included (Eager Loading check).
@@ -150,7 +134,7 @@ async def test_get_portfolio_detail_with_assets(client: AsyncClient, auth_header
 
 
 @pytest.mark.asyncio
-async def test_delete_asset_api(client: AsyncClient, auth_headers: dict):
+async def test_delete_asset_api(client: AsyncClient, auth_headers: dict[str, str]):
     """
     Test DELETE /api/v1/portfolios/{id}/assets/{ticker}
     Should remove the asset from the portfolio.
