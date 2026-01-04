@@ -118,11 +118,6 @@ class PortfolioService:
         the average buy price (Weighted Average).
         """
         portfolio = await self.get_portfolio(user_id, portfolio_id)
-        if not portfolio:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
-
-        if portfolio.user_id != user_id:
-            raise PermissionDeniedException()
 
         existing_asset = await self.repository.get_asset_by_ticker(portfolio.id, asset_in.ticker)
 
@@ -156,11 +151,6 @@ class PortfolioService:
         Removes an asset (identified by ticker) from a user's portfolio.
         """
         portfolio = await self.get_portfolio(user_id, portfolio_id)
-        if not portfolio:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
-
-        if portfolio.user_id != user_id:
-            raise PermissionDeniedException()
 
         asset = await self.repository.get_asset_by_ticker(portfolio.id, ticker)
         if not asset:
@@ -212,6 +202,18 @@ class PortfolioService:
         # commit all at once
         await self.repository.commit()
         return count
+
+    async def get_portfolio_history(self, user_id: int, portfolio_id: int) -> list[PortfolioHistory]:
+        """
+        Get history for charts. Verifies ownership.
+        """
+        portfolio = await self.repository.get_portfolio_by_id(portfolio_id)
+        if not portfolio:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
+
+        if portfolio.user_id != user_id:
+            raise PermissionDeniedException()
+        return list(await self.repository.get_portfolio_history(portfolio_id))
 
 
 class AlertService:

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, status
 from src.modules.auth.dependencies import get_current_user
 from src.modules.auth.models import User
 from src.modules.portfolio.dependencies import get_alert_service, get_portfolio_service
-from src.modules.portfolio.models import Alert, Asset, Portfolio
+from src.modules.portfolio.models import Alert, Asset, Portfolio, PortfolioHistory
 from src.modules.portfolio.schemas import (
     AlertCreate,
     AlertResponse,
@@ -18,6 +18,7 @@ from src.modules.portfolio.schemas import (
     AssetCreate,
     AssetResponse,
     PortfolioCreate,
+    PortfolioHistoryResponse,
     PortfolioListResponse,
     PortfolioResponse,
     PortfolioUpdate,
@@ -164,3 +165,15 @@ async def delete_asset(
     Remove an asset from the portfolio completely.
     """
     await service.remove_asset(user_id=current_user.id, portfolio_id=portfolio_id, ticker=ticker)
+
+
+@router.get("/{portfolio_id}/history", response_model=list[PortfolioHistoryResponse])
+async def get_portfolio_history(
+    portfolio_id: int,
+    current_user: CurrentUser,
+    service: PortfolioSvc,
+) -> list[PortfolioHistory]:
+    """
+    Get historical performance data for charts.
+    """
+    return await service.get_portfolio_history(user_id=current_user.id, portfolio_id=portfolio_id)

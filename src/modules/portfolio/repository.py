@@ -139,6 +139,18 @@ class PortfolioRepository:
             self.session.add(history)
             return history
 
+    async def get_portfolio_history(self, portfolio_id: int) -> Sequence[PortfolioHistory]:
+        """
+        Retrieves full history for a portfolio, ordered by date ASC.
+        """
+        stmt = (
+            select(PortfolioHistory)
+            .where(PortfolioHistory.portfolio_id == portfolio_id)
+            .order_by(PortfolioHistory.date.asc())
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
 
 class AlertRepository:
     """

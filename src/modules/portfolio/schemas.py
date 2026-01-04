@@ -3,7 +3,7 @@ Pydantic schemas for the Portfolio module.
 Handles data validation and serialization.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated
 
@@ -137,3 +137,11 @@ class AlertUpdate(BaseModel):
     target_price: Annotated[Decimal | None, Field(gt=0, decimal_places=2)] = None
     condition: AlertCondition | None = None
     is_active: bool | None = None
+
+
+class PortfolioHistoryResponse(BaseModel):
+    date: date
+    total_value: Decimal
+    total_pnl_percentage: float | None
+
+    model_config = ConfigDict(from_attributes=True)
