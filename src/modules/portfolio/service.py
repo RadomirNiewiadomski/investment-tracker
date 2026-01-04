@@ -182,18 +182,28 @@ class PortfolioService:
                 continue  # empty portfolio -> no history
 
             total_value = Decimal(0)
+            total_cost = Decimal(0)
             for asset in portfolio.assets:
                 current_price = await self.market_data.get_price(asset.ticker)
 
                 if current_price:
                     price_dec = Decimal(str(current_price))
                     total_value += asset.quantity * price_dec
+                    total_cost += asset.quantity * asset.avg_buy_price
+
+            pnl_percentage = None
+            if total_cost > 0:
+                pnl_percentage = ((total_value - total_cost) / total_cost) * Decimal(100)
+            elif total_value > 0 and total_cost == 0:
+                # Edge case: We have assets with a value > 0, but the cost was 0 (e.g. airdrop/gift).
+                # Technically, the profit is infinite, but let's set it to 100%
+                pnl_percentage = Decimal(100)
 
             history = PortfolioHistory(
                 date=today,
                 total_value=total_value,
                 portfolio_id=portfolio.id,
-                total_pnl_percentage=None,  # TODO: calculate PnL percentage
+                total_pnl_percentage=pnl_percentage,
             )
 
             await self.repository.create_portfolio_history(history)

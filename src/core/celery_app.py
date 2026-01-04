@@ -25,10 +25,10 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     "update-prices-every-5-minutes": {
         "task": "src.modules.market_data.tasks.update_asset_prices",
-        "schedule": 300.0,  # every 5 minutes
+        "schedule": 300.0,  # Every 5 minutes
     },
     "snapshot-every-day-midnight": {
         "task": "src.modules.market_data.tasks.create_daily_portfolio_snapshots",
-        "schedule": crontab(hour=0, minute=0),  # everyady at midnight (00:00)
+        "schedule": crontab(hour=0, minute=0),  # Everyady at midnight (00:00)
     },
 }

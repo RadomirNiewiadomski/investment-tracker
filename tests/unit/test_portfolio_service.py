@@ -3,8 +3,9 @@ Unit tests for PortfolioService.
 Tests business logic using mocked repository.
 """
 
+from datetime import date
 from decimal import Decimal
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException, status
@@ -225,3 +226,47 @@ async def test_get_portfolio_permission_denied(service, mock_repo):
 
     with pytest.raises(PermissionDeniedException):
         await service.get_portfolio(wrong_user_id, portfolio_id=10)
+
+
+@pytest.mark.asyncio
+async def test_create_daily_snapshots_calculates_pnl_correctly():
+    """
+    Test that daily snapshot logic correctly calculates Total Value and PnL %.
+    Scenario:
+      - Asset: BTC
+      - Quantity: 2.0
+      - Avg Buy Price: 20,000 USD (Total Cost = 40,000)
+      - Current Price: 30,000 USD (Total Value = 60,000)
+      - Expected PnL: ((60k - 40k) / 40k) * 100 = 50%
+    """
+    mock_repo = AsyncMock()
+    mock_market_data = AsyncMock()
+    service = PortfolioService(mock_repo, mock_market_data)
+
+    mock_asset = MagicMock(spec=Asset)
+    mock_asset.ticker = "BTC"
+    mock_asset.quantity = Decimal("2.0")
+    mock_asset.avg_buy_price = Decimal("20000.00")
+
+    mock_portfolio = MagicMock(spec=Portfolio)
+    mock_portfolio.id = 1
+    mock_portfolio.assets = [mock_asset]
+
+    mock_repo.get_all_portfolios_system.return_value = [mock_portfolio]
+
+    mock_market_data.get_price.return_value = 30000.00
+
+    count = await service.create_daily_snapshots()
+
+    assert count == 1
+
+    mock_repo.create_portfolio_history.assert_called_once()
+
+    call_args = mock_repo.create_portfolio_history.call_args[0][0]
+
+    assert call_args.portfolio_id == 1
+    assert call_args.date == date.today()
+    assert call_args.total_value == Decimal("60000.00")
+    assert call_args.total_pnl_percentage == Decimal("50.0")
+
+    mock_repo.commit.assert_awaited_once()
