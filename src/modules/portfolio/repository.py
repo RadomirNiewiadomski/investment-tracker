@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.modules.portfolio.models import Alert, Asset, Portfolio
+from src.modules.portfolio.models import Alert, Asset, Portfolio, PortfolioHistory
 from src.modules.portfolio.schemas import AlertUpdate
 
 
@@ -108,6 +108,36 @@ class PortfolioRepository:
         """
         await self.session.delete(asset)
         await self.session.commit()
+
+    async def get_all_portfolios_system(self) -> Sequence[Portfolio]:
+        """
+        Retrieves ALL portfolios in the system (for background worker).
+        Eager loads assets to calculate value.
+        """
+        stmt = select(Portfolio).options(selectinload(Portfolio.assets))
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def create_portfolio_history(self, history: PortfolioHistory) -> PortfolioHistory:
+        """
+        Saves or updates a daily snapshot.
+        Commit is handled at the end of service/task.
+        """
+        stmt = select(PortfolioHistory).where(
+            PortfolioHistory.portfolio_id == history.portfolio_id, PortfolioHistory.date == history.date
+        )
+        result = await self.session.execute(stmt)
+        existing = result.scalars().first()
+
+        if existing:
+            # Update
+            existing.total_value = history.total_value
+            existing.total_pnl_percentage = history.total_pnl_percentage
+            return existing
+        else:
+            # Insert
+            self.session.add(history)
+            return history
 
 
 class AlertRepository:

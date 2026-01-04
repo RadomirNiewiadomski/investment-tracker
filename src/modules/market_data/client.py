@@ -5,6 +5,8 @@ Client for interacting with external Market Data APIs (e.g., CoinGecko).
 import httpx
 from loguru import logger
 
+from src.modules.market_data.constants import COINGECKO_TICKER_MAP
+
 
 class CoinGeckoClient:
     """
@@ -18,9 +20,7 @@ class CoinGeckoClient:
         Fetches current price for a given ticker (e.g., 'BTC', 'ETH') in USD.
         Returns None if ticker is not found or API fails properly.
         """
-        ticker_map = {"BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "ADA": "cardano", "DOT": "polkadot"}
-
-        coin_id = ticker_map.get(ticker.upper())
+        coin_id = COINGECKO_TICKER_MAP.get(ticker.upper())
         if not coin_id:
             return None
 

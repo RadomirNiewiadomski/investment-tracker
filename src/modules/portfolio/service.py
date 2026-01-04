@@ -4,13 +4,14 @@ Contains business logic for managing portfolios, assets and alerts.
 """
 
 import asyncio
+from datetime import date
 from decimal import Decimal
 
 from fastapi import HTTPException, status
 
 from src.core.exceptions import PermissionDeniedException
 from src.modules.market_data.service import MarketDataService
-from src.modules.portfolio.models import Alert, Asset, Portfolio
+from src.modules.portfolio.models import Alert, Asset, Portfolio, PortfolioHistory
 from src.modules.portfolio.repository import AlertRepository, PortfolioRepository
 from src.modules.portfolio.schemas import AlertCreate, AlertUpdate, AssetCreate, PortfolioCreate, PortfolioUpdate
 
@@ -166,6 +167,41 @@ class PortfolioService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found in this portfolio")
 
         await self.repository.delete_asset(asset)
+
+    async def create_daily_snapshots(self) -> int:
+        """
+        Calculates total value for ALL portfolios and saves snapshot to history.
+        Returns number of snapshots created.
+        """
+        portfolios = await self.repository.get_all_portfolios_system()
+        today = date.today()
+        count = 0
+
+        for portfolio in portfolios:
+            if not portfolio.assets:
+                continue  # empty portfolio -> no history
+
+            total_value = Decimal(0)
+            for asset in portfolio.assets:
+                current_price = await self.market_data.get_price(asset.ticker)
+
+                if current_price:
+                    price_dec = Decimal(str(current_price))
+                    total_value += asset.quantity * price_dec
+
+            history = PortfolioHistory(
+                date=today,
+                total_value=total_value,
+                portfolio_id=portfolio.id,
+                total_pnl_percentage=None,  # TODO: calculate PnL percentage
+            )
+
+            await self.repository.create_portfolio_history(history)
+            count += 1
+
+        # commit all at once
+        await self.repository.commit()
+        return count
 
 
 class AlertService:

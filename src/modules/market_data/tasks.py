@@ -16,7 +16,8 @@ from src.core.redis import init_redis_pool
 from src.modules.market_data.service import MarketDataService
 from src.modules.notifications.service import NotificationService
 from src.modules.portfolio.models import Alert, AlertCondition, Asset
-from src.modules.portfolio.repository import AlertRepository
+from src.modules.portfolio.repository import AlertRepository, PortfolioRepository
+from src.modules.portfolio.service import PortfolioService
 
 logger = get_task_logger(__name__)
 
@@ -117,3 +118,43 @@ def update_asset_prices() -> None:
     Celery wrapper for the async logic.
     """
     async_to_sync(_update_prices_logic)()
+
+
+async def _create_snapshots_logic() -> None:
+    """
+    Async logic to create daily portfolio snapshots.
+    """
+    logger.info("Starting daily portfolio snapshot...")
+
+    redis_client = await init_redis_pool()
+    local_engine = create_engine()
+    local_session_maker = async_sessionmaker(
+        bind=local_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    market_service = MarketDataService(redis_client)
+
+    try:
+        async with local_session_maker() as session:
+            repo = PortfolioRepository(session)
+            service = PortfolioService(repo, market_service)
+
+            count = await service.create_daily_snapshots()
+            logger.info(f"Successfully created {count} portfolio snapshots.")
+
+    except Exception as e:
+        logger.error(f"Error creating snapshots: {e}")
+        raise
+    finally:
+        await redis_client.aclose()
+        await local_engine.dispose()
+
+
+@celery_app.task  # type: ignore
+def create_daily_portfolio_snapshots() -> None:
+    """
+    Daily task to save portfolio history.
+    """
+    async_to_sync(_create_snapshots_logic)()
