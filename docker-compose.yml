@@ -1,5 +1,4 @@
 services:
-  # --- Main Application (FastAPI) ---
   web:
     build:
       context: .
@@ -25,7 +24,6 @@ services:
       retries: 3
       start_period: 10s
 
-  # --- Database (PostgreSQL) ---
   db:
     image: postgres:17-alpine
     restart: always
@@ -42,7 +40,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- Message Broker & Cache (Redis) ---
   redis:
     image: redis:7-alpine
     restart: always
