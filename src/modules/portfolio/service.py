@@ -45,7 +45,7 @@ class PortfolioService:
     async def get_portfolio(self, user_id: int, portfolio_id: int) -> Portfolio:
         """
         Retrieves a portfolio and enriches it with current market prices.
-        Fetches prices for all assets in parallel using asyncio.gather.
+        Fetches prices for all assets concurrently using asyncio.TaskGroup.
         """
         portfolio = await self.repository.get_portfolio_by_id(portfolio_id)
         if not portfolio:
@@ -57,9 +57,13 @@ class PortfolioService:
         if not portfolio.assets:
             return portfolio
 
-        tasks = [self.market_data.get_price(asset.ticker) for asset in portfolio.assets]
+        price_tasks = []
+        async with asyncio.TaskGroup() as tg:
+            for asset in portfolio.assets:
+                task = tg.create_task(self.market_data.get_price(asset.ticker))
+                price_tasks.append(task)
 
-        current_prices = await asyncio.gather(*tasks)
+        current_prices = [task.result() for task in price_tasks]
 
         total_value = 0.0
         total_cost = 0.0

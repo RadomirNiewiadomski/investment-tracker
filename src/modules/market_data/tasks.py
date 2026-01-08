@@ -99,8 +99,9 @@ async def _update_prices_logic() -> None:
 
             if tickers:
                 logger.info(f"Updating prices for {len(tickers)} tickers: {tickers}")
-                tasks = [market_service.get_price(ticker, force_refresh=True) for ticker in tickers]
-                await asyncio.gather(*tasks)
+                async with asyncio.TaskGroup() as tg:
+                    for ticker in tickers:
+                        tg.create_task(market_service.get_price(ticker, force_refresh=True))
 
             triggered = await _process_alerts(session, redis_client)
             logger.info(f"Alert check finished. Triggered: {triggered}")
