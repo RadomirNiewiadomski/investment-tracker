@@ -66,12 +66,20 @@ Create a `.env` file in the root directory using the provided `.env.example` as 
 Build and start the services:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 **The API will be available at `http://localhost:8000`.**
 
 Note: Database migrations are applied automatically on container startup.
+
+### 4. Seed the database (optional)
+
+To populate the database with a sample data (demo user, portfolio, assets, and alerts) run:
+
+```bash
+docker compose run --rm web uv run python -m src.scripts.seed_db
+```
 
 ## 📚 API Documentation
 
@@ -95,19 +103,19 @@ The project uses `pytest` for Unit and Integration testing. It spins up a separa
 **Run all tests:**
 
 ```bash
-docker compose run --rm app uv run pytest
+docker compose run --rm web uv run pytest
 ```
 
 **Check static typing (mypy):**
 
 ```bash
-docker compose run --rm app uv run mypy .
+docker compose run --rm web uv run mypy .
 ```
 
 **Check code style (ruff):**
 
 ```bash
-docker compose run --rm app uv run ruff check .
+docker compose run --rm web uv run ruff check .
 ```
 
 ## 🔄 Background Tasks
