@@ -24,7 +24,9 @@ def create_engine() -> AsyncEngine:
     return create_async_engine(
         str(settings.SQLALCHEMY_DATABASE_URI),
         echo=settings.DEBUG,
-        future=True,
+        pool_size=20,
+        max_overflow=10,
+        pool_pre_ping=True,
     )
 
 
@@ -33,7 +35,6 @@ engine = create_engine()
 # Create Session Factory (new AsyncSession instances for each request)
 async_session_maker = async_sessionmaker(
     bind=engine,
-    class_=AsyncSession,
     expire_on_commit=False,
     autoflush=False,
 )
@@ -78,8 +79,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, Any]:
         except Exception:
             await session.rollback()
             raise
-        finally:
-            await session.close()
 
 
 from src.modules.auth.models import User  # noqa: F401, E402
